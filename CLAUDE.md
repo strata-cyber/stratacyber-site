@@ -55,9 +55,11 @@ py -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python build.py                  # build to dist/
 .venv\Scripts\python build.py serve --drafts   # http://localhost:8000, includes drafts and future dates
+.venv\Scripts\python tools\check_site.py        # after a build: links, anchors, alt text, meta, hreflang, sitemap
 ```
 
-`dist/`, `.venv/` and `.claude/` are git-ignored. Python 3.11+, one dependency (Markdown).
+`dist/`, `.venv/` and `.claude/` are git-ignored. Pull requests run the same build and check
+(`.github/workflows/check.yml`); GitHub Actions are pinned to commit SHAs and Dependabot proposes updates. Python 3.11+, one dependency (Markdown).
 
 ## Brand rules that the site must respect
 
