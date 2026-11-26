@@ -456,9 +456,10 @@ code, kbd, samp, pre { font-family: var(--f-mono); }
 
 @media print {
   .masthead-nav, .colophon, .next-move, .back, .article-toc, .skip { display: none; }
-  .masthead, .cover { background: none; color: #000; }
-  .masthead-logo, .cover h1 { color: #000; }
-  .cover-lede { color: #333; }
+  .masthead, .cover { background: none; color: var(--ink); }
+  .masthead-logo { color: var(--charcoal); }   /* brand: Charcoal logo on light backgrounds */
+  .cover h1 { color: var(--ink); }
+  .cover-lede { color: var(--charcoal); }
   .article-grid { grid-template-columns: 1fr; }
-  .prose a::after { content: " (" attr(href) ")"; font-size: .8em; color: #555; }
+  .prose a::after { content: " (" attr(href) ")"; font-size: .8em; color: var(--slate); }
 }
