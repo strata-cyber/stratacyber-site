@@ -20,8 +20,10 @@ content/articles/en/*.md  English articles (TOML front matter between +++ lines)
 content/articles/pt/*.md  Portuguese articles; same file name = translation
 templates/                home page and "latest articles" block, per language
 static/                   CSS, the Calendly loader, fonts, logos, favicons, OG images
+tools/check_site.py       checks dist/: links, anchors, alt text, meta tags, hreflang, sitemap
 tools/brand_assets.py     regenerates static/fonts, static/brand, favicons and og-*.png from the brand kit
-.github/workflows/        build + deploy to GitHub Pages
+.github/workflows/        check.yml on pull requests; deploy.yml builds and deploys to GitHub Pages
+.github/dependabot.yml    weekly update PRs for pip and GitHub Actions
 ```
 
 ## Run locally
