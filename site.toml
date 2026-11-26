@@ -1,0 +1,14 @@
+# Strata Cyber site settings. Edit, commit, push: the site rebuilds itself.
+
+# Public address of the site (no trailing slash). Used for canonical links, feeds and the sitemap.
+url = "https://stratacyber.com.br"
+
+# Your Calendly scheduling link: an event-type link (calendly.com/<you>/<event>) shows the
+# calendar directly; a profile link (calendly.com/<you>) shows a list of event types first.
+calendly_url = "https://calendly.com/jefferson-stratacyber/30min"
+
+# Shown in the booking section and the footer. Leave empty ("") to hide.
+email = "jefferson@stratacyber.com.br"
+
+# Optional company LinkedIn page, shown in the footer. Leave empty to hide.
+linkedin = "https://www.linkedin.com/company/strata-cyber"

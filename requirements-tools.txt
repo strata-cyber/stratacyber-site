@@ -1,0 +1,4 @@
+# Only for tools/brand_assets.py (regenerating fonts, logos and OG images from the brand kit).
+fonttools==4.*
+brotli
+pillow
