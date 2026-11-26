@@ -157,32 +157,44 @@ def load_article(path: Path, lang: str) -> Article:
     except tomllib.TOMLDecodeError as err:
         raise BuildError(f"{name}: front matter is not valid TOML: {err}") from None
 
+    unknown = set(meta) - FIELDS
+    if unknown:
+        raise BuildError(f"{name}: unknown front matter key(s): {', '.join(sorted(unknown))}")
     for key in ("title", "summary", "date"):
         if key not in meta:
             raise BuildError(f"{name}: front matter needs `{key}`")
-    if not isinstance(meta["date"], date):
-        raise BuildError(f"{name}: date must be a TOML date, e.g. date = 2026-11-26 (no quotes)")
-    sev = str(meta.get("severity", "")).lower()
+    for key in ("title", "summary", "kind", "author", "tlp", "severity"):
+        if key in meta and not isinstance(meta[key], str):
+            raise BuildError(f'{name}: {key} must be text in quotes, e.g. {key} = "..."')
+    for key in ("title", "summary"):
+        if not meta[key].strip():
+            raise BuildError(f"{name}: {key} is empty")
+    for key in ("date", "updated"):
+        if key in meta and not isinstance(meta[key], date):
+            raise BuildError(f"{name}: {key} must be a TOML date, e.g. {key} = 2026-11-26 (no quotes)")
+    if "draft" in meta and not isinstance(meta["draft"], bool):
+        raise BuildError(f"{name}: draft must be true or false (no quotes)")
+    sev = meta.get("severity", "").strip().lower()
     if sev and sev not in SEVERITIES:
         raise BuildError(f"{name}: severity must be one of {', '.join(SEVERITIES)}")
-    tlp = str(meta.get("tlp", "")).upper().removeprefix("TLP:")
+    tlp = re.sub(r"\s+", "", meta.get("tlp", "")).upper().removeprefix("TLP:")
     if tlp and tlp not in TLPS:
         raise BuildError(f"{name}: tlp must be one of {', '.join(TLPS)}")
     if tlp and tlp != "CLEAR":
         # A public website is TLP:CLEAR by definition; publishing anything else would break the label.
         raise BuildError(f"{name}: TLP:{tlp} content cannot be published on a public site (only TLP:CLEAR)")
-    unknown = set(meta) - FIELDS
-    if unknown:
-        raise BuildError(f"{name}: unknown front matter key(s): {', '.join(sorted(unknown))}")
 
     d = meta["date"]
+    d = d.date() if isinstance(d, datetime) else d
     upd = meta.get("updated")
+    upd = upd.date() if isinstance(upd, datetime) else upd
+    if upd and upd < d:
+        raise BuildError(f"{name}: updated ({upd}) is earlier than date ({d})")
     return Article(
         source=path, slug=path.stem, lang=lang, title=meta["title"].strip(),
-        summary=meta["summary"].strip(), date=d if not isinstance(d, datetime) else d.date(),
-        body_md=m.group(2), kind=meta.get("kind", ""), author=meta.get("author", ""),
-        tlp=tlp, severity=sev, updated=(upd.date() if isinstance(upd, datetime) else upd),
-        draft=bool(meta.get("draft", False)),
+        summary=meta["summary"].strip(), date=d,
+        body_md=m.group(2), kind=meta.get("kind", "").strip(), author=meta.get("author", "").strip(),
+        tlp=tlp, severity=sev, updated=upd, draft=meta.get("draft", False),
     )
 
 
@@ -193,6 +205,11 @@ def render_markdown(a: Article) -> None:
         output_format="html",
     )
     out = md.convert(a.body_md)
+    for tag in re.findall(r"<img\b[^>]*>", out):
+        alt = re.search(r'\balt="([^"]*)"', tag)
+        if not alt or not alt.group(1).strip():
+            raise BuildError(f"{a.lang}/{a.source.name}: image without a description: {tag} "
+                             "(write ![Description](file.png); see WRITING.md)")
     out = out.replace("<table>", '<div class="table-wrap"><table>').replace("</table>", "</table></div>")
     out = re.sub(r"<img (?![^>]*loading=)", '<img loading="lazy" decoding="async" ', out)
     # `TLP:AMBER` written as inline code becomes a FIRST-standard TLP label.
@@ -378,12 +395,14 @@ class Site:
 <meta property="og:site_name" content="Strata Cyber">
 <meta property="og:type" content="{og_type}">
 <meta property="og:locale" content="{t['og_locale']}">
+<meta property="og:locale:alternate" content="{L10N[other]['og_locale']}">
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(description)}">
 <meta property="og:url" content="{self.base}{path}">
 <meta property="og:image" content="{self.base}/og-{lang}.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Strata Cyber">
 <meta name="twitter:card" content="summary_large_image">{extra_head}
 </head>
 <body>
@@ -406,7 +425,9 @@ CSP = ("default-src 'self'; "
        "font-src 'self'; "
        "frame-src https://calendly.com; "
        "connect-src 'self' https://calendly.com; "
-       "base-uri 'self'; form-action 'none'; object-src 'none'")
+       "base-uri 'self'; form-action 'none'; object-src 'none'; upgrade-insecure-requests")
+# GitHub Pages cannot send response headers, so frame-ancestors, HSTS, X-Content-Type-Options and
+# Permissions-Policy are not possible here (browsers ignore frame-ancestors in a meta tag).
 
 
 # --------------------------------------------------------------------------- pages
@@ -600,10 +621,37 @@ def write(rel: str, text: str) -> None:
     path.write_text(text, "utf-8")
 
 
+ASSET_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg", ".pdf"}
+
+
+def copy_assets(src: Path, dest: Path) -> None:
+    """Copy an article's image folder. Only plain image/PDF files: no symlinks (they could pull in files
+    from outside the repo), no hidden files, nothing that could overwrite the article's index.html."""
+    for p in sorted(src.rglob("*")):
+        rel = p.relative_to(src)
+        where = f"{src.relative_to(ROOT).as_posix()}/{rel.as_posix()}"
+        if p.is_symlink():
+            raise BuildError(f"{where}: symbolic links are not allowed in article folders")
+        if any(part.startswith(".") for part in rel.parts) or p.is_dir():
+            continue
+        if p.suffix.lower() not in ASSET_TYPES:
+            raise BuildError(f"{where}: only {', '.join(sorted(ASSET_TYPES))} files go in an article folder")
+        if p.suffix.lower() == ".svg" and re.search(r"<script|\bon\w+\s*=|javascript:", p.read_text("utf-8", "replace"), re.I):
+            # An SVG opened on its own runs its scripts on this origin; GitHub Pages sends no CSP for it.
+            raise BuildError(f"{where}: SVG contains script or event handlers; export it without them")
+        out = dest / rel
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(p, out)
+
+
 def build(include_drafts: bool = False) -> int:
     cfg = tomllib.loads((ROOT / "site.toml").read_text("utf-8"))
     if not cfg.get("calendly_url", "").startswith("https://calendly.com/"):
         raise BuildError("site.toml: calendly_url must be a https://calendly.com/... link")
+    if cfg.get("linkedin") and not cfg["linkedin"].startswith("https://"):
+        raise BuildError("site.toml: linkedin must be an https:// link (or empty)")
+    if cfg.get("email") and not re.fullmatch(r"[^@\s\"<>]+@[^@\s\"<>]+\.[a-z]{2,}", cfg["email"]):
+        raise BuildError("site.toml: email does not look like an email address")
     if "REPLACE" in cfg["calendly_url"]:
         print("warning: site.toml calendly_url is still the placeholder", file=sys.stderr)
 
@@ -622,9 +670,9 @@ def build(include_drafts: bool = False) -> int:
         write(f"{L10N[lang]['prefix']}/feed.xml", build_feed(site, lang))
     for a in articles:
         write(a.url, build_article(site, a))
-        assets = a.source.with_suffix("")  # content/articles/<slug>/ holds that article's images
+        assets = a.source.with_suffix("")  # content/articles/<lang>/<slug>/ holds that article's images
         if assets.is_dir():
-            shutil.copytree(assets, DIST / a.url.strip("/"), dirs_exist_ok=True)
+            copy_assets(assets, DIST / a.url.strip("/"))
     write("/404.html", build_404(site))
     write("/sitemap.xml", build_sitemap(site))
     write("/robots.txt", f"User-agent: *\nAllow: /\n\nSitemap: {site.base}/sitemap.xml\n")
