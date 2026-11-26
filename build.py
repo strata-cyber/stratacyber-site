@@ -3,7 +3,7 @@
 
 Turns content/articles/{en,pt}/*.md + templates/ + static/ into a static site in dist/.
 No database, no admin panel: publishing an article means committing a
-Markdown file. See WRITING.md.
+Markdown file.
 
     python build.py            build dist/
     python build.py serve      build, serve on http://localhost:8000, rebuild on change
@@ -151,7 +151,7 @@ def load_article(path: Path, lang: str) -> Article:
     text = path.read_text("utf-8").replace("\r\n", "\n")
     m = FRONT_MATTER.match(text)
     if not m:
-        raise BuildError(f"{name}: missing +++ front matter +++ block (see WRITING.md)")
+        raise BuildError(f"{name}: missing +++ front matter +++ block")
     try:
         meta = tomllib.loads(m.group(1))
     except tomllib.TOMLDecodeError as err:
@@ -209,7 +209,7 @@ def render_markdown(a: Article) -> None:
         alt = re.search(r'\balt="([^"]*)"', tag)
         if not alt or not alt.group(1).strip():
             raise BuildError(f"{a.lang}/{a.source.name}: image without a description: {tag} "
-                             "(write ![Description](file.png); see WRITING.md)")
+                             "(write ![Description](file.png))")
     out = out.replace("<table>", '<div class="table-wrap"><table>').replace("</table>", "</table></div>")
     out = re.sub(r"<img (?![^>]*loading=)", '<img loading="lazy" decoding="async" ', out)
     # `TLP:AMBER` written as inline code becomes a FIRST-standard TLP label.
