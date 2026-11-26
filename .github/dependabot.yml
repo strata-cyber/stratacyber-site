@@ -1,0 +1,23 @@
+# Weekly update PRs for the Python dependencies and the pinned GitHub Actions.
+# Each PR runs the "Check" workflow, so a broken update shows up before merge.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    groups:
+      brand-tools:
+        patterns: ["fonttools", "brotli", "pillow"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Sao_Paulo
+    groups:
+      actions:
+        patterns: ["*"]
