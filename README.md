@@ -49,6 +49,29 @@ after 60 days without activity; any push turns it back on.
 
 Any static host works the same way (Cloudflare Pages, Netlify): build command `pip install -r requirements.txt && python build.py`, output directory `dist`.
 
+### Live setup (since 2026-11-26)
+
+- Repository: `strata-cyber/stratacyber-site` (public; Pages on private repositories needs a paid plan).
+  Commits use the repository-only identity `Strata Cyber <strata-cyber@users.noreply.github.com>`.
+- Domain verified for GitHub Pages on the `strata-cyber` account, so no other account can claim it.
+- DNS is hosted by Registro.br (`d.sec.dns.br`, `f.sec.dns.br`) with DNSSEC on. Records in the zone:
+
+  | Name | Type | Value | Purpose |
+  |---|---|---|---|
+  | `@` | A ×4 | `185.199.108.153` … `185.199.111.153` | GitHub Pages |
+  | `www` | CNAME | `strata-cyber.github.io` | GitHub Pages |
+  | `@` | MX | `1 smtp.google.com` | Google Workspace mail |
+  | `@` | TXT | `v=spf1 include:_spf.google.com ~all` | SPF: only Google sends as the domain |
+  | `google._domainkey` | TXT | `v=DKIM1; k=rsa; p=…` | DKIM (Google Workspace) |
+  | `_dmarc` | TXT | `v=DMARC1; p=quarantine; rua=mailto:…; adkim=s; aspf=s` | DMARC; move to `p=reject` once reports are clean |
+  | `_smtp._tls` | TXT | `v=TLSRPTv1; rua=mailto:…` | TLS delivery reports |
+  | `_github-pages-challenge-strata-cyber` | TXT | (GitHub code) | Pages domain verification |
+  | `@` | TXT, `isynu7s3mr66` CNAME | `google-site-verification…` | Google domain verification |
+
+  A new service that sends email as `@stratacyber.com.br` must be added to the single SPF record first.
+- `static/brand/strata-cyber-logo-charcoal.png` is the public copy of the logo that the brand kit's Google Docs and
+  Slides builders embed (those editors only take images from a public URL).
+
 ## Rebuilding brand assets
 
 Only needed if the brand kit changes:
