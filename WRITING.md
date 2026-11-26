@@ -56,7 +56,9 @@ content/articles/en/ransomware-healthcare.md
 content/articles/en/ransomware-healthcare/chart.png
 ```
 
-Then reference it by name: `![Description of the chart](chart.png)`. Always write the description.
+Then reference it by name: `![Description of the chart](chart.png)`. Always write the description:
+the build fails on an image without one. The folder takes images (`.png`, `.jpg`, `.webp`, `.avif`, `.gif`,
+`.svg` without scripts) and `.pdf` files only.
 
 ## Preview before publishing (optional)
 
