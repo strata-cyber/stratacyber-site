@@ -19,7 +19,8 @@
   --garnet: #9E1F32; --garnet-deep: #5E1420; --garnet-tint: #F2DADF;
   --ink: #15171A; --charcoal: #2E3236; --slate: #5B6168; --stone: #A7A9A6;
   --limestone: #E7E3DC; --paper: #F6F4EF;
-  --ghost: #23262A; /* the knight, a shade off Ink */
+  --ink-raised: #1C1F23; --ink-lifted: #23262A; /* dark-mode shades (manual, Dark mode) */
+  --ghost: var(--ink-lifted); /* the knight, a shade off Ink */
 
   /* Roles */
   --bg: var(--paper);
@@ -34,7 +35,7 @@
   --accent-text: var(--garnet);
   --callout: var(--garnet-tint);
   --code-bg: var(--limestone);
-  --stripe: #EFECE6;
+  --stripe: var(--limestone);
 
   --f-display: "Archivo Expanded", "Archivo", Arial, sans-serif;
   --f-text: "Archivo", Arial, sans-serif;
@@ -48,18 +49,18 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111316;
-    --surface: #1C1F23;
-    --band: #16181B;
+    --bg: var(--ink);
+    --surface: var(--ink-lifted);
+    --band: var(--ink-raised);
     --fg: var(--paper);
-    --body: #D9D6CF;
+    --body: var(--limestone);
     --muted: var(--stone);
     --line: var(--charcoal);
     --rule: #5B6168;
-    --accent-text: #E8A3AF;
-    --callout: #2A161B;
-    --code-bg: #23262A;
-    --stripe: #181A1E;
+    --accent-text: var(--garnet-tint);
+    --callout: var(--garnet-deep);
+    --code-bg: var(--ink-lifted);
+    --stripe: var(--ink-raised);
   }
 }
 
@@ -71,7 +72,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--body);
-  font: 400 17px/1.6 var(--f-text);
+  font: 400 16px/1.6 var(--f-text);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
